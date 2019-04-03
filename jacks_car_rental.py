@@ -1,5 +1,7 @@
 import numpy as np
 import math
+import seaborn
+import time
 
 """Example 4.2 from Reinforcement Learning: An Introduction by Sutton and Barto
 
@@ -22,13 +24,15 @@ the day, and the actions are the net numbers of cars moved between the two locat
 overnight
 """
 
+start_time = time.time()
+
 # Discount rate
 gamma = 0.9
 
 # Expected numbers for requests and returns at each location
 lambda_request1 = 3
 lambda_request2 = 4
-lambda_return1 = 3
+lambda_return1 = 5
 lambda_return2 = 2
 
 # Convergence criterion for value iteration
@@ -95,92 +99,140 @@ stop = False
 # Initialize iteration count
 iteration = 0
 while not stop:
+    iter_start = time.time()
     iteration += 1
     print('iteration {}'.format(iteration))
     # Policy Evaluation
+    print('Starting policy evaluation')
     # Boolean for ending evaluation loop
     eval_stop = False
     # Initialize evaluation iteration count
     eval_iter = 0
     while not eval_stop:
+        eval_start = time.time()
         eval_iter += 1
+        print('policy evaluation iteration {}'.format(eval_iter))
         # Initialize Delta
         Delta = 0
         # Loop over all states
         for s in states:
             # Current value
-            v = value[s]
+            v = np.copy(value[s])
             # Initialize sum of probabilities for s_prime and r
             sum_prob = 0
+            ret = 0
             # Create lists for possible values of requests and returns received
             # at each location
-            possible_requests1 = list(range(s[0]+1))
-            possible_requests2 = list(range(s[1]+1))
-            possible_returns1 = list(range(20-s[0]+1))
-            possible_returns2 = list(range(20-s[1]+1))
+#            possible_requests1 = list(range(s[0]+1))
+#            possible_requests2 = list(range(s[1]+1))
+#            possible_returns1 = list(range(20-s[0]+1))
+#            possible_returns2 = list(range(20-s[1]+1))
+            possible_requests1 = list(range(12))
+            possible_requests2 = list(range(12))
+            possible_returns1 = list(range(12))
+            possible_returns2 = list(range(12))
+#            possible_requests1 = [3]
+#            possible_requests2 = [4]
+#            possible_returns1 = [3]
+#            possible_returns2 = [2]
             # Loop over all combinations of requests and returns
-            for (request1,request2,return1,return2) in zip(possible_requests1,possible_requests2,possible_returns1,possible_returns2):
-                # Create requests and returns arrays for arguments for 
-                # state_transition function
-                requests = np.asarray([request1,request2])
-                returns = np.asarray([return1,return2])
-                # Calculate s_prime and r
-                s_prime, r = state_transition(s,policy[s],requests,returns)
-                # Calculate probability of getting this s_prime and this r by
-                # multiplying probabilities for each request and return number
-                prob = poisson(lambda_request1,request1)*poisson(lambda_request2,request2)*poisson(lambda_return1,return1)*poisson(lambda_return2,return2)
-                # Add this probability times r + gamma*V(s_prime) to sum of
-                # probabilities
-                sum_prob += prob*(r + gamma*value[s_prime])
+#            for (request1,request2,return1,return2) in zip(possible_requests1,possible_requests2,possible_returns1,possible_returns2):
+            for request1 in possible_requests1:
+                for request2 in possible_requests2:
+                    for return1 in possible_returns1:
+                        for return2 in possible_returns2:
+                            # Create requests and returns arrays for arguments for 
+                            # state_transition function
+                            requests = np.asarray([request1,request2])
+                            returns = np.asarray([return1,return2])
+                            # Calculate s_prime and r
+                            s_prime, r = state_transition(s,policy[s],requests,returns)
+                            # Calculate probability of getting this s_prime and this r by
+                            # multiplying probabilities for each request and return number
+                            prob = poisson(lambda_request1,request1)*poisson(lambda_request2,request2)*poisson(lambda_return1,return1)*poisson(lambda_return2,return2)
+                            # Add this probability times r + gamma*V(s_prime) to sum of
+                            # probabilities
+                            ret += prob*(r + gamma*value[s_prime])
+                            sum_prob += prob
             # Update V(s)
-            value[s] = sum_prob
+            value[s] = ret
             # Update Delta
             Delta = max([Delta, abs(v-value[s])])
+#            print('v = {}'.format(v))
+#            print('V(s) = {}'.format(value[s]))
+        print("Delta = {}".format(Delta))
+        print("policy evaluation iteration tool {} seconds".format(time.time()-eval_start))
         # Check stopping criterion
         if Delta < theta: eval_stop = True
     
     # Policy Improvement
+    print('Starting policy improvement')
     # Initialize check for policy not changing
     policy_stable = True
     # Loop over all states
     for s in states:
         # Current action
-        old_action = policy[s]
+        old_action = np.copy(policy[s])
         # Initialize list of values at this state for each action
         value_list = []
         # Create list of possible actions to take.  Can't transfer more cars
         # than are at either location
-        possible_actions = list(range(-min([s[0],5]),min([s[1],5])+1))
+        possible_actions = list(range(-min([s[1],5]),min([s[0],5])+1))
         # Create lists for possible values of requests and returns received
         # at each location
-        possible_requests1 = list(range(s[0]+1))
-        possible_requests2 = list(range(s[1]+1))
-        possible_returns1 = list(range(20-s[0]+1))
-        possible_returns2 = list(range(20-s[1]+1))
+#        possible_requests1 = list(range(s[0]+1))
+#        possible_requests2 = list(range(s[1]+1))
+#        possible_returns1 = list(range(20-s[0]+1))
+#        possible_returns2 = list(range(20-s[1]+1))
+        possible_requests1 = list(range(12))
+        possible_requests2 = list(range(12))
+        possible_returns1 = list(range(12))
+        possible_returns2 = list(range(12))
+#        possible_requests1 = [3]
+#        possible_requests2 = [4]
+#        possible_returns1 = [3]
+#        possible_returns2 = [2]
         # Loop over all possible actions at this state
         for a in possible_actions:
             # Initialize sum of probabilities for s_prime and r
             sum_prob = 0
             # Loop over all combinations of requests and returns
-            for (request1,request2,return1,return2) in zip(possible_requests1,possible_requests2,possible_returns1,possible_returns2):
-                # Create requests and returns arrays for arguments for 
-                # state_transition function
-                requests = np.asarray([request1,request2])
-                returns = np.asarray([return1,return2])
-                # Calculate s_prime and r
-                s_prime, r = state_transition(s,a,requests,returns)
-                # Calculate probability of getting this s_prime and this r by
-                # multiplying probabilities for each request and return number
-                prob = poisson(lambda_request1,request1)*poisson(lambda_request2,request2)*poisson(lambda_return1,return1)*poisson(lambda_return2,return2)
-                # Add this probability times r + gamma*V(s_prime) to sum of
-                # probabilities
-                sum_prob += prob*(r + gamma*value[s_prime])
+#            for (request1,request2,return1,return2) in zip(possible_requests1,possible_requests2,possible_returns1,possible_returns2):
+            for request1 in possible_requests1:
+                for request2 in possible_requests2:
+                    for return1 in possible_returns1:
+                        for return2 in possible_returns2:    
+                            # Create requests and returns arrays for arguments for 
+                            # state_transition function
+                            requests = np.asarray([request1,request2])
+                            returns = np.asarray([return1,return2])
+                            # Calculate s_prime and r
+                            s_prime, r = state_transition(s,a,requests,returns)
+                            # Calculate probability of getting this s_prime and this r by
+                            # multiplying probabilities for each request and return number
+                            prob = poisson(lambda_request1,request1)*poisson(lambda_request2,request2)*poisson(lambda_return1,return1)*poisson(lambda_return2,return2)
+                            # Add this probability times r + gamma*V(s_prime) to sum of
+                            # probabilities
+                            sum_prob += prob*(r + gamma*value[s_prime])
             # Append this value for this action to the list of action values
             value_list.append(sum_prob)
         # Update A(s)
         policy[s] = possible_actions[np.argmax(value_list)]
+#        print('old action = {}'.format(old_action))
+#        print('new action = {}'.format(policy[s]))
         # If the updated action is different from the previous one, set 
         # policy_stable boolean to False
         if old_action != policy[s]: policy_stable = False
     # If the policy hasn't changed at all, end the main loop
+    print('iteration {} took {} seconds'.format(iteration, time.time()-iter_start))
+    print('total run time: {} seconds'.format(time.time()-start_time))
     if policy_stable: stop = True
+
+pi = np.zeros((21,21))
+V = np.zeros((21,21))
+for i in range(21):
+    for j in range(21):
+        pi[i,j] = policy[(i,j)]
+        V[i,j] = value[(i,j)]
+seaborn.heatmap(np.flipud(pi), cmap="YlGnBu")
+#seaborn.heatmap(V, cmap="YlGnBu")
